@@ -167,3 +167,7 @@ Pega el resultado en `SESSION_SECRET`. No reutilices el Client Secret como clave
 - El ejemplo guarda temporalmente los datos OAuth pendientes en memoria. Usa un almacén compartido antes de escalar a varios procesos/instancias.
 - Limita `CORS_ORIGINS` a tus frontends exactos. CORS no autentica al usuario; `/api/me` solo devuelve el perfil de la sesión autenticada.
 - Minecraft debe autorizar el Client ID. Si falta el perfil, la API devuelve `404 no_minecraft_profile`; errores de proveedor devuelven `502` con código legible.
+
+## Nota sobre el desarrollo
+
+Este proyecto se ha desarrollado con asistencia de herramientas de inteligencia artificial. Su código y documentación se han revisado y adaptado para este proyecto.
