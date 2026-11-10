@@ -28,7 +28,7 @@ Minecraft Services puede rechazar el Client ID con `403 Invalid app registration
 
 ## Configuración de Microsoft Entra
 
-Esta versión es un **cliente web confidencial del lado servidor**, distinto de la versión de consola:
+La aplicación usa un **cliente web confidencial del lado servidor**:
 
 1. En Entra, abre **App registrations** y selecciona el registro existente.
 2. En **Authentication > Add a platform > Web**, agrega la URI exacta `http://localhost:8000/auth/callback` para desarrollo local. En producción agrega la URI HTTPS exacta del servidor, por ejemplo `https://api.ejemplo.com/auth/callback`.

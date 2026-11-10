@@ -14,6 +14,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlencode, urlsplit
 
 import msal
+import requests
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,9 +22,6 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBasic, HTTPBasicCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from starlette.middleware.sessions import SessionMiddleware
-
-from main import LoginError, MINECRAFT, get_json, get_minecraft_token
-
 
 load_dotenv()
 
@@ -43,6 +41,10 @@ CORS_ORIGINS = [
 ]
 AUTHORITY = "https://login.microsoftonline.com/consumers"
 SCOPES = ["XboxLive.signin"]
+XBOX_USER_AUTH = "https://user.auth.xboxlive.com/user/authenticate"
+XBOX_XSTS_AUTH = "https://xsts.auth.xboxlive.com/xsts/authorize"
+MINECRAFT = "https://api.minecraftservices.com"
+HTTP_TIMEOUT = 25
 AUTH_MODE = os.getenv("AUTH_MODE", "development").strip().lower()
 MOCK_PROFILE_NAME = os.getenv("MOCK_PROFILE_NAME", "PruebaMinecraft").strip()
 MOCK_PROFILE_UUID = os.getenv(
@@ -72,6 +74,98 @@ if COOKIE_SAME_SITE == "none" and not COOKIE_SECURE:
     raise RuntimeError("COOKIE_SECURE=true es obligatorio con COOKIE_SAME_SITE=none.")
 if not PUBLIC_BASE_URL.startswith(("http://", "https://")):
     raise RuntimeError("PUBLIC_BASE_URL debe comenzar por http:// o https://.")
+
+
+class LoginError(Exception):
+    """Error de autenticación o acceso a los servicios Xbox/Minecraft."""
+
+
+def post_json(url: str, body: dict[str, Any]) -> dict[str, Any]:
+    try:
+        response = requests.post(url, json=body, timeout=HTTP_TIMEOUT)
+    except requests.RequestException as exc:
+        raise LoginError("No se pudo conectar con los servicios Xbox/Minecraft.") from exc
+
+    if not response.ok:
+        if response.status_code == 403 and url.endswith("/authentication/login_with_xbox"):
+            raise LoginError(
+                "Minecraft rechazó el registro de la aplicación (403). El Client ID de Entra "
+                "puede necesitar autorización/registro de Minecraft. Consulta la guía oficial "
+                "en README.md y solicita la aprobación antes de reintentar."
+            )
+        raise LoginError(f"El servicio Xbox/Minecraft respondió HTTP {response.status_code}.")
+
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise LoginError("El servicio Xbox/Minecraft devolvió una respuesta JSON no válida.") from exc
+
+
+def get_json(url: str, token: str) -> dict[str, Any]:
+    try:
+        response = requests.get(
+            url,
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+            timeout=HTTP_TIMEOUT,
+        )
+    except requests.RequestException as exc:
+        raise LoginError("No se pudo consultar el perfil de Minecraft.") from exc
+
+    if response.status_code == 404:
+        raise LoginError(
+            "La cuenta Microsoft inició sesión, pero no tiene un perfil de Minecraft Java "
+            "disponible. Puede no tener acceso/licencia a Java Edition, o el perfil todavía "
+            "no se ha creado. Comprueba el acceso desde el Launcher oficial."
+        )
+    if response.status_code == 401:
+        raise LoginError("Minecraft no aceptó el token de acceso; vuelve a iniciar sesión.")
+    if not response.ok:
+        raise LoginError(f"La consulta del perfil respondió HTTP {response.status_code}.")
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise LoginError("Minecraft devolvió una respuesta de perfil no válida.") from exc
+
+
+def get_minecraft_token(msa_token: str) -> str:
+    xbl = post_json(
+        XBOX_USER_AUTH,
+        {
+            "Properties": {
+                "AuthMethod": "RPS",
+                "SiteName": "user.auth.xboxlive.com",
+                "RpsTicket": f"d={msa_token}",
+            },
+            "RelyingParty": "http://auth.xboxlive.com",
+            "TokenType": "JWT",
+        },
+    )
+    xbl_token = xbl.get("Token")
+    if not xbl_token:
+        raise LoginError("Xbox Live no devolvió un token de usuario.")
+
+    xsts = post_json(
+        XBOX_XSTS_AUTH,
+        {
+            "Properties": {"SandboxId": "RETAIL", "UserTokens": [xbl_token]},
+            "RelyingParty": "rp://api.minecraftservices.com/",
+            "TokenType": "JWT",
+        },
+    )
+    xsts_token = xsts.get("Token")
+    claims = xsts.get("DisplayClaims", {}).get("xui", [])
+    user_hash = claims[0].get("uhs") if claims else None
+    if not xsts_token or not user_hash:
+        raise LoginError("Xbox Live no devolvió las credenciales XSTS requeridas.")
+
+    minecraft = post_json(
+        f"{MINECRAFT}/authentication/login_with_xbox",
+        {"identityToken": f"XBL3.0 x={user_hash};{xsts_token}"},
+    )
+    token = minecraft.get("access_token")
+    if not token:
+        raise LoginError("Minecraft no devolvió un token de acceso.")
+    return token
 
 
 app = FastAPI(
