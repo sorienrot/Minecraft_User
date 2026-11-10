@@ -43,7 +43,7 @@ CORS_ORIGINS = [
 ]
 AUTHORITY = "https://login.microsoftonline.com/consumers"
 SCOPES = ["XboxLive.signin"]
-AUTH_MODE = os.getenv("AUTH_MODE", "microsoft").strip().lower()
+AUTH_MODE = os.getenv("AUTH_MODE", "development").strip().lower()
 MOCK_PROFILE_NAME = os.getenv("MOCK_PROFILE_NAME", "PruebaMinecraft").strip()
 MOCK_PROFILE_UUID = os.getenv(
     "MOCK_PROFILE_UUID", "12345678-1234-4234-8234-123456789abc"
