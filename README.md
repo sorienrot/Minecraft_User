@@ -33,9 +33,8 @@ Esta versión es un **cliente web confidencial del lado servidor**, distinto de 
 1. En Entra, abre **App registrations** y selecciona el registro existente.
 2. En **Authentication > Add a platform > Web**, agrega la URI exacta `http://localhost:8000/auth/callback` para desarrollo local. En producción agrega la URI HTTPS exacta del servidor, por ejemplo `https://api.ejemplo.com/auth/callback`.
 3. En **Supported account types**, habilita cuentas Microsoft personales. La aplicación usa el tenant `consumers`.
-4. No agregues una API de Xbox desde **API permissions**: el registro puede no mostrar ninguna y no hace falta configurar ahí un permiso de Xbox. Durante el inicio de sesión, la aplicación solicita el ámbito OAuth delegado `XboxLive.signin` (en el parámetro `scope`); no agregues permisos de Microsoft Graph para obtener el perfil de Minecraft. El acceso a Xbox y Minecraft se completa después mediante el intercambio de tokens que hace el backend.
-5. En **Certificates & secrets**, crea un **Client secret**. Copia su campo **Value** inmediatamente a `MICROSOFT_CLIENT_SECRET` en el entorno del servidor. No lo pongas en el frontend, repositorio, ni publiques el `.env`. Un certificado también puede sustituir al secreto en producción; este ejemplo usa secreto.
-6. Solicita el registro/autorización del Client ID para Minecraft Services mediante el proceso oficial indicado arriba.
+4. En **Certificates & secrets**, crea un **Client secret**. Copia su campo **Value** inmediatamente a `MICROSOFT_CLIENT_SECRET` en el entorno del servidor. No lo pongas en el frontend, repositorio, ni publiques el `.env`. Un certificado también puede sustituir al secreto en producción; este ejemplo usa secreto.
+5. Solicita el registro/autorización del Client ID para Minecraft Services mediante el proceso oficial indicado arriba.
 
 Microsoft documenta el Authorization Code de MSAL Python y la diferencia entre clientes públicos y confidenciales en [MSAL Python: adquirir tokens](https://learn.microsoft.com/en-us/entra/msal/python/getting-started/acquiring-tokens). La URI de redirección debe coincidir con la registrada: [guía de redirect URI](https://learn.microsoft.com/en-us/entra/identity-platform/how-to-add-redirect-uri).
 
