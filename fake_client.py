@@ -78,6 +78,7 @@ def home(request: Request) -> HTMLResponse:
             "<p>Perfil recibido desde la API:</p>"
             f"<p>Nombre: <strong>{html.escape(profile['name'])}</strong></p>"
             f"<p>UUID: <code>{html.escape(profile['uuid'])}</code></p>"
+            f"<p>JSON completo: <pre>{html.escape(str(profile))}</pre></p>"
             '<p><a href="/logout">Cerrar sesión local</a></p>'
         )
     else:
