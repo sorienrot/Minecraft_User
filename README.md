@@ -1,4 +1,4 @@
-# Minecraft Java Profile API
+# PokeBontMine
 
 Servicio web Python con FastAPI. El usuario inicia sesión con su propia cuenta Microsoft y la API devuelve el nombre y UUID de su perfil Java. No admite consultas por correo ni búsquedas de perfiles privados de otras personas.
 
